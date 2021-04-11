@@ -1,30 +1,18 @@
 ﻿#define _CRT_SECURE_NO_WARNINGS
 
-#undef DEBUG
+
+#include <stdio.h>
+#include <assert.h>
 
 #include "json.hpp"
 #include "SerialPort.hpp"
 #include <string>
-#include <sstream>
 #include <unordered_map>
 #include <functional>
 #include <utility>
 #include <list>
 #include <memory>
-#include <conio.h>
 
-#define LMB 0x01
-#define RMB 0x02
-#define KEY0 0x30
-#define KEY1 0x31
-#define KEY2 0x32
-#define KEY3 0x33
-#define KEY4 0x34
-#define KEY5 0x35
-#define KEY6 0x36
-#define KEY7 0x37
-#define KEY8 0x38
-#define KEY9 0x39
 
 enum class FactorType { BUTTON, JOYSTICK };
 
@@ -50,7 +38,7 @@ struct Button : public Factor
     bool state;
     //std::function<void(Button*)> callback;
 
-    Button(int _pin = -1, bool _state = 0) :
+    Button(int _pin = -1, bool _state = false) :
         Factor(),
         state(_state),
         pin(_pin),
@@ -111,19 +99,19 @@ protected:
         std::cout << "/*************************************************************/\n";
     }
     
-    void showSavedFactors(const std::list<std::unique_ptr<Factor>>& factors) const
+    void showSavedFactors(const std::unordered_map<std::string,std::unique_ptr<Factor>>& factors) const
     {
         for (auto& factor : factors)
         {
-            std::cout << "ID : "<<factor->ID;
-            if (factor->type == FactorType::BUTTON)
+            std::cout << "ID : "<<static_cast<unsigned>(factor.second->ID);
+            if (factor.second->type == FactorType::BUTTON) // is a button
             {
                 std::cout << " Type: Button ";
-                Factor* tempFactor = factor.get();
+                Factor* tempFactor = factor.second.get();
                 Button* tempButton = static_cast<Button*>(tempFactor);
-                std::cout << " PIN : "<<tempButton->pin << " STATE: "<<tempButton->state<<"\n";
+                std::cout << " PIN : "<<tempButton->pin <<"\n";
             }
-            else
+            else // is a joystick
             {
 
             }
@@ -131,6 +119,14 @@ protected:
     }
 };
 
+/*
+    Digital pins
+    0..13
+
+    Analog pins
+    A0..A5
+
+*/
 
 class Emulator : public Gui
 {
@@ -138,8 +134,9 @@ class Emulator : public Gui
     const char* mportId;
     char* mMsgGet;
     SerialPort* mArduino;
-    std::list<std::unique_ptr<Factor>> mFactors;
+    //std::list<std::unique_ptr<Factor>> mFactors;
     std::unordered_map<std::string, std::unique_ptr<Factor>> mMap;
+
 public:
     
     explicit Emulator(const char* portId)
@@ -161,6 +158,25 @@ public:
     ~Emulator()
     {
         delete mArduino;
+    }
+
+    char* getPinFromMsg(const char* msg) const
+    {
+        char* pin = nullptr;
+        if (msg[1] == '0')
+        {
+            pin = new char[2];
+            pin[0] = msg[2];
+            pin[1] = '\0';
+        }
+        else
+        {
+            pin = new char[3];
+            pin[0] = msg[1];
+            pin[1] = msg[2];
+            pin[2] = '\0';
+        }
+        return pin;
     }
 
     void getSerialMessageAndSaveExistingFactors(void)
@@ -186,27 +202,15 @@ public:
 
                 if (bData[0] == 'b') // button detected 
                 {
-                    char* pin = nullptr;
-                    if (bData[1] == '0')
-                    {
-                        pin = new char[2];
-                        pin[0] = bData[2];
-                        pin[1] = '\0';
-                    }
-                    else
-                    {
-                        pin = new char[3];
-                        pin[0] = bData[1];
-                        pin[1] = bData[2];
-                        pin[2] = '\0';
-                    }
+                    char* pin = getPinFromMsg(mMsgGet);
                     std::cout << bData << "\n";
 
                     configuredFactors++;
                     while (mArduino->readSerialPort(mMsgGet, mMsgSize) == 0) 
                     {}
-                    
-                    mFactors.emplace_back(new Button(atoi(pin), (bData[3] == '0') ? 0 : 1));
+
+                    mMap.insert(std::make_pair(std::string(pin), new Button(atoi(pin), false)));
+                    //mFactors.emplace_back(new Button(atoi(pin), (bData[3] == '0') ? 0 : 1));
                     delete [] pin;
                 }
                 else if (mMsgGet[0] == 'j') // joystick detected
@@ -227,13 +231,14 @@ public:
     void configureFactors(void)
     {
         std::cout << "\n";
-        for (auto& factor : mFactors)
+        for (auto& factor : mMap)
         {
-            std::cout << "ID : " << factor->ID;
-            if (factor->type == FactorType::BUTTON)
+           
+            std::cout << "ID : " << static_cast<unsigned>(factor.second->ID);
+            if (factor.second->type == FactorType::BUTTON)
             {
                 std::cout << " | Type: Button | Enter hex VirtualKeyCode to set a key to be emulated : ";
-                Factor* tempFactor = factor.get();
+                Factor* tempFactor = factor.second.get();
                 Button* tempButton = static_cast<Button*>(tempFactor);
                 int vKeyCode;
                 std::cin >> std::hex >> vKeyCode;
@@ -264,7 +269,7 @@ public:
     {
         showSetUpMenu();
         getSerialMessageAndSaveExistingFactors();
-        showSavedFactors(mFactors);
+        showSavedFactors(mMap);
         configureFactors();
     }
 
@@ -284,41 +289,31 @@ public:
         }
 
         mMsgSize = 4;
-        bool state = 0;
+        bool state = false;
+        char bData[5] = { ' ',' ',' ',' ','\0' };
 
         while (mArduino->isConnected())
         {  
             Sleep(10);
-            for (auto& factor : mFactors)
+
+            if (mArduino->readSerialPort(mMsgGet, mMsgSize) == mMsgSize)
             {
-                char bData[5] = { ' ',' ',' ',' ','\0' };
-                //memcpy()
-                if (mArduino->readSerialPort(mMsgGet, mMsgSize) == mMsgSize)
-                {
-                    memcpy(bData, mMsgGet, sizeof(char) * 4);
-                    std::cout << bData<< "\n";
-                    state= (bData[3] == '0') ? false : true;
-                    //std::cout << "STATE - " << state << "\n";
-                }
-                
-                factor->update(state);
-                factor->updateState();
-                /*
-                if (factor->type == FactorType::BUTTON)
-                {
+                memcpy(bData, mMsgGet, sizeof(char) * 4);
+                std::cout << bData<< "\n";
+                char* pin = getPinFromMsg(mMsgGet);
 
-                    Factor* tempFactor = factor.get();
-                    Button* tempButton = static_cast<Button*>(tempFactor);
-                }
-                else
+                auto pair = mMap.find(std::string(pin));
+                if (pair == mMap.end())
                 {
-
+                    std::cerr << "Error! Undefined data occured on serial port.\n";
                 }
-                */
+
+                mMap[std::string(pin)]->update((bData[3] == '0') ? false : true);
                 
+                delete[] pin;
             }
-            //mArduino->readSerialPort(mMsgGet, mMsgSize);
-
+            for( auto& factor : mMap)
+                factor.second->updateState();
         }
 
         delete [] mMsgGet;
