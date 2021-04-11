@@ -1,20 +1,151 @@
-﻿// ArduinoUNOJoystickEmulator.cpp : Ten plik zawiera funkcję „main”. W nim rozpoczyna się i kończy wykonywanie programu.
-//
+﻿#define _CRT_SECURE_NO_WARNINGS
 
-#include <iostream>
+#undef DEBUG
 
-int main()
+#include "json.hpp"
+#include "SerialPort.hpp"
+#include <string>
+#include <sstream>
+#include <unordered_map>
+#include <functional>
+#include <utility>
+#include <list>
+
+class DataSerializer
 {
-    std::cout << "Hello World!\n";
+public:
+    /*
+    /
+    /   To do
+    /
+    */
+};
+
+class Gui
+{
+protected:
+    DataSerializer mDataSerializer;
+
+    int showMainMenu(void) const
+    {
+        int option;
+        std::cout << "\n<--------------------------->\n";
+        std::cout << "1. Load controller settings\n";
+        std::cout << "2. Set up new controller\n";
+        std::cin >> option;
+        system("cls");
+        return option;
+    }
+
+    void showSetUpMenu(void) const
+    {
+        std::cout << "/*****************************************************/\n";
+        std::cout << "/ Listening for actions on your device...             /\n";
+        std::cout << "/ Push button to let the program detect it and        /\n";
+        std::cout << "/ choose a key to be emulated by pressing that button /\n";
+        std::cout << "/*****************************************************/\n";
+        system("pause");
+    }
+    
+};
+
+enum class FactorType { BUTTON, JOYSTICK };
+
+struct Factor
+{
+    FactorType type;
+    std::function<void(void)> callback;
+    int id;
+
+    Factor() : type(FactorType::BUTTON)
+    {
+        static int ID = 0;
+        id = ID;
+        ID++;
+    }
+};
+
+class Emulator : public Gui
+{
+    const unsigned mMsgSize;
+    const char* mportId;
+    char* mMsgGet;
+    SerialPort* mArduino;
+    std::list<Factor> mFactors;
+
+public:
+    explicit Emulator(const char* portId)
+        :   mportId(portId),
+            mMsgSize(1),
+            mArduino(nullptr)
+    {
+        std::cout << "Connecting...\n";
+        char* portName;
+        mMsgGet = new char[mMsgSize];
+        portName = new char[15];   
+        strcpy(portName,"\\\\.\\COM");
+        strcat(portName,mportId);
+        mArduino = new SerialPort(portName);
+        delete[] portName;
+    }
+
+    ~Emulator()
+    {
+        delete mArduino;
+    }
+
+    void listenForActions(void)
+    {
+
+    }
+
+    void setUpNewJoystick(void)
+    {
+        showSetUpMenu();
+        std::cout << "Press a button to let me get it..!";
+
+        while (mArduino->isConnected())
+        {
+            //mArduino->readSerialPort(mMsgGet, mMsgSize);
+            //std::string msg = mMsgGet;
+        }
+    }
+
+    void run(void)
+    {
+        int option = showMainMenu();
+        switch (option)
+        {
+            case 1:
+                
+            break;
+            case 2: 
+                setUpNewJoystick();
+                 
+            break;
+            default: std::cout << "ASD"; exit(EXIT_FAILURE); break;
+        }
+
+        
+
+       
+        while (mArduino->isConnected())
+        {  
+            mArduino->readSerialPort(mMsgGet,mMsgSize);
+            std::string msg = mMsgGet;
+        }
+        showMainMenu();
+
+        delete [] mMsgGet;
+    }
+
+};
+
+int main(void)
+{
+    char port[3];
+    std::cout << "Enter COM port that your device is connected to : ";
+    std::cin >> port;
+    Emulator emulator(port);
+    emulator.run();
 }
-
-// Uruchomienie programu: Ctrl + F5 lub menu Debugowanie > Uruchom bez debugowania
-// Debugowanie programu: F5 lub menu Debugowanie > Rozpocznij debugowanie
-
-// Porady dotyczące rozpoczynania pracy:
-//   1. Użyj okna Eksploratora rozwiązań, aby dodać pliki i zarządzać nimi
-//   2. Użyj okna programu Team Explorer, aby nawiązać połączenie z kontrolą źródła
-//   3. Użyj okna Dane wyjściowe, aby sprawdzić dane wyjściowe kompilacji i inne komunikaty
-//   4. Użyj okna Lista błędów, aby zobaczyć błędy
-//   5. Wybierz pozycję Projekt > Dodaj nowy element, aby utworzyć nowe pliki kodu, lub wybierz pozycję Projekt > Dodaj istniejący element, aby dodać istniejące pliku kodu do projektu
-//   6. Aby w przyszłości ponownie otworzyć ten projekt, przejdź do pozycji Plik > Otwórz > Projekt i wybierz plik sln
