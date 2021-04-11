@@ -30,11 +30,11 @@ enum class FactorType { BUTTON, JOYSTICK };
 
 struct Factor
 {
-    unsigned ID;
+    uint8_t ID;
     FactorType type;
     Factor(FactorType factorType = FactorType::BUTTON) : type(factorType)
     {
-        static unsigned id = 0;
+        static uint8_t id = 0;
         ID = id;
         id++;
     }
@@ -139,7 +139,7 @@ class Emulator : public Gui
     char* mMsgGet;
     SerialPort* mArduino;
     std::list<std::unique_ptr<Factor>> mFactors;
-
+    std::unordered_map<std::string, std::unique_ptr<Factor>> mMap;
 public:
     
     explicit Emulator(const char* portId)
@@ -166,29 +166,21 @@ public:
     void getSerialMessageAndSaveExistingFactors(void)
     {
         bool readEverything = false;
-        int numDeclaredFactors;
+        int numDeclaredFactors = 0;
         int configuredFactors = 0;
 
         std::cout << "\nEnter the number of buttons you want to config : ";
         std::cin >> numDeclaredFactors;
-        //std::cout << "\nEnter the number of buttons you want to config : ";
-        //std::cin >> numDeclaredJoysticks;
+        
 
         while (!readEverything && mArduino->isConnected())
         {
-            if (numDeclaredFactors == configuredFactors)
-                readEverything = true;
+            
 
             // reading factors data one by one (data is reperented by 4 bytes - b/j | 0..13 | 0..1 - for example b100
             // meaning that button is connected to pin 10 and it is currently in off state 
             if (mArduino->readSerialPort(mMsgGet, mMsgSize) != 0)
             {
-                static int temp = 0;
-                if (temp % 2 == 1)
-                {
-                    temp++;
-                    break;
-                }
                 char bData[5] = { ' ',' ',' ',' ','\0' };
                 memcpy(bData, mMsgGet, sizeof(char) * 4);
 
@@ -209,16 +201,24 @@ public:
                         pin[2] = '\0';
                     }
                     std::cout << bData << "\n";
+
+                    configuredFactors++;
+                    while (mArduino->readSerialPort(mMsgGet, mMsgSize) == 0) 
+                    {}
+                    
                     mFactors.emplace_back(new Button(atoi(pin), (bData[3] == '0') ? 0 : 1));
                     delete [] pin;
                 }
                 else if (mMsgGet[0] == 'j') // joystick detected
                 {
+                    // to do
                     std::cout << "joystick";
                 }
-                configuredFactors++;
-                temp++;
+                
+
             }
+            if (numDeclaredFactors == configuredFactors)
+                readEverything = true;
         }
         std::cout << "\n .. detected ..\n";
         system("pause");
