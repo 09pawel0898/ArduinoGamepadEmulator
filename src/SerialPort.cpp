@@ -60,7 +60,6 @@ SerialPort::SerialPort(const char *portName)
             }
         }
     }
-    std::cout << "Successfully connected with your arduino on " << portName;
 }
 
 SerialPort::~SerialPort()

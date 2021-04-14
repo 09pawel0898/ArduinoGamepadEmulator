@@ -22648,7 +22648,7 @@ class basic_json
 
     @since version 3.0.0
     */
-    void update(const_reference j)
+    void updateFactor(const_reference j)
     {
         // implicitly convert null value to an empty object
         if (is_null())
@@ -22699,7 +22699,7 @@ class basic_json
 
     @since version 3.0.0
     */
-    void update(const_iterator first, const_iterator last)
+    void updateFactor(const_iterator first, const_iterator last)
     {
         // implicitly convert null value to an empty object
         if (is_null())
