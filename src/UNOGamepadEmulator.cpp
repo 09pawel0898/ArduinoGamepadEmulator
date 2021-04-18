@@ -14,6 +14,9 @@
 #include <memory>
 
 enum class FactorType { BUTTON, JOYSTICK };
+enum class JoystickMode { MOUSE, BUTTONS };
+
+//typedef void (*mouseShift)(uint8_t, uint8_t);
 
 struct JoyPosition
 {
@@ -32,7 +35,7 @@ struct Factor
         ID = id;
         id++;
     }
-    virtual void updateFactor(bool state, JoyPosition* joyPosition) = 0;
+    virtual void updateFactor(bool state, void* joyPosition) = 0;
     virtual void updateEmulatedStuff(void) const = 0;
     virtual ~Factor() {}
 };
@@ -50,7 +53,7 @@ struct Button : public Factor
         emulatedKeyCode(0x00)
     {}
 
-    inline virtual void updateFactor(bool _state, JoyPosition* joyPosition) override
+    inline virtual void updateFactor(bool _state, void* joyPosition) override
     {
         state = _state;
     }
@@ -58,33 +61,167 @@ struct Button : public Factor
     virtual void updateEmulatedStuff(void) const override
     {
         if (state == true) 
-        { 
             keybd_event(emulatedKeyCode, 0, 0, 0);
-        }
         else 
-        { 
             keybd_event(emulatedKeyCode, 0, KEYEVENTF_KEYUP, 0);
-        }
     }
 };
 
 struct Joystick : public Factor
 {
+    /*
+    *   0 - up, 1 - down, 2- left, 3 -right
+    */
+
     int nr;
+    JoystickMode mode;
+    JoyPosition position = { 4,4 };
+    
+    int* buttonEmulatedKeyCode;         
+    bool* buttonState;                  
+
+    POINT* mousePos;
+    void (*mouseShift[8])(POINT*, char) = { nullptr };
 
     Joystick(int _nr = -1) :
         Factor(FactorType::JOYSTICK),
-        nr(_nr)
+        mode(JoystickMode::MOUSE),
+        nr(_nr),
+        buttonEmulatedKeyCode(nullptr),
+        buttonState(nullptr),
+        mousePos(nullptr)
     {}
 
-    inline virtual void updateFactor(bool _state, JoyPosition* joyPosition) override
+    ~Joystick()
     {
-       
+        if (mode == JoystickMode::BUTTONS)
+        {
+            delete[] buttonEmulatedKeyCode;
+            delete[] buttonState;
+        }
+        else if (mode == JoystickMode::MOUSE)
+        {
+            delete mousePos;
+        }
+    }
+
+    void setUpForMouseMode(void)
+    {
+        mousePos = new POINT();
+
+        mouseShift[0] = [](POINT* mousePosition, char axis) 
+        {
+            if (axis == 'x')        mousePosition->y -= 40;
+            else if(axis == 'y')    mousePosition->x += 40;
+        };
+        mouseShift[1] = [](POINT* mousePosition, char axis)
+        {
+            if (axis == 'x')        mousePosition->y -= 20;
+            else if (axis == 'y')   mousePosition->x += 20;
+        };
+        mouseShift[2] = [](POINT* mousePosition, char axis)
+        {
+            if (axis == 'x')        mousePosition->y -= 10;
+            else if (axis == 'y')   mousePosition->x += 10;
+        };
+        mouseShift[3] = [](POINT* mousePosition, char axis)
+        {
+            if (axis == 'x')        mousePosition->y -= 5;
+            else if (axis == 'y')   mousePosition->x += 5;
+        };
+        mouseShift[4] = [](POINT* mousePosition, char axis)
+        {
+            if (axis == 'x')        mousePosition->y += 5;
+            else if (axis == 'y')   mousePosition->x -= 5;
+        };
+        mouseShift[5] = [](POINT* mousePosition, char axis)
+        {
+            if (axis == 'x')        mousePosition->y += 10;
+            else if (axis == 'y')   mousePosition->x -= 10;
+        };
+        mouseShift[6] = [](POINT* mousePosition, char axis)
+        {
+            if (axis == 'x')        mousePosition->y += 20;
+            else if (axis == 'y')   mousePosition->x -= 20;
+        };
+        mouseShift[7] = [](POINT* mousePosition, char axis)
+        {
+            if (axis == 'x')        mousePosition->y += 40;
+            else if (axis == 'y')   mousePosition->x -= 40;
+        };
+    }
+
+    void setUpForButtonsMode(void)
+    {
+        buttonEmulatedKeyCode = new int[4];
+        buttonState = new bool[4];
+    }
+
+    inline virtual void updateFactor(bool _state, void* joyPosition) override
+    {
+        JoyPosition* newPos= (JoyPosition*)joyPosition;
+        position = *newPos;
+        
+        /*
+            1..3x - UP [0]
+            5..8x - DOWN [1]
+            x5..8 - LEFT [2]
+            x1..3 - RIGHT [3] 
+        */
+
+        if (mode == JoystickMode::BUTTONS)
+        {
+            if (position.x < 4)         // up
+                buttonState[0] = true;
+            else if (position.x > 4)    // down
+                buttonState[1] = true;
+            else                        // neutral on x axis
+            {
+                buttonState[0] = false;
+                buttonState[1] = false;
+            }
+
+            if (position.y < 4)         // right
+                buttonState[3] = true;
+            else if (position.y > 4)    // left
+                buttonState[2] = true;
+            else                        // neutral on y axis
+            {
+                buttonState[3] = false;
+                buttonState[2] = false;
+            }
+        }
     }
 
     virtual void updateEmulatedStuff(void) const override
     {
-        
+        if (mode == JoystickMode::BUTTONS)
+        {
+            for (uint8_t i = 0; i < 4; i++)
+            {
+                if (buttonState[i] == true)
+                    keybd_event(buttonEmulatedKeyCode[i], 0, 0, 0);
+                else
+                    keybd_event(buttonEmulatedKeyCode[i], 0, KEYEVENTF_KEYUP, 0);
+            }
+        }
+        else if (mode == JoystickMode::MOUSE)
+        {
+            GetCursorPos(mousePos);
+            POINT temp = *mousePos;
+
+            if (position.x < 4)
+                mouseShift[position.x](mousePos, 'x');
+            else if (position.x > 4)
+                mouseShift[position.x - 1](mousePos, 'x');
+            if (position.y < 4)
+                mouseShift[position.y](mousePos, 'y');
+            if (position.y > 4)
+                mouseShift[position.y - 1](mousePos, 'y');
+
+            if((temp.x !=mousePos->x) || (temp.y != mousePos->y))
+                SetCursorPos(mousePos->x, mousePos->y);
+        }
     }
 };
 
@@ -222,7 +359,12 @@ public:
                 if (msgStr[0] == 'b') // button detected 
                 {
                     char* pin = getPinFromMsg(mMsg,FactorType::BUTTON);
-                    std::cout << msgStr << " - button detected on pin "<<pin<<"\n";
+
+                    auto existing = mMap.find("b" + std::string(pin));
+                    if (existing != mMap.end())
+                        continue;
+
+                    std::cout << msgStr << " - button detected on pin " << pin << "\n";
 
                     configuredFactors++;
                     while (mArduinoPort->readSerialPort(mMsg, mMsgSize) == 0) 
@@ -279,10 +421,36 @@ public:
             }
             else // joystick config
             {
-                std::cout << " | Type: Joystick | Choose either 1 for emulating mouse or 2 for emulating 4 buttons : ";
+                std::cout << " | Type: Joystick | Mode : ";
                 Factor* tempFactor = factor.second.get();
                 Joystick* tempJoystick = static_cast<Joystick*>(tempFactor);
+                std::string mode;
+                std::cin >> mode;
+                std::transform(mode.begin(), mode.end(), mode.begin(), ::tolower);
                 
+                if (mode == "mouse")
+                {
+                    tempJoystick->mode = JoystickMode::MOUSE;
+                    tempJoystick->setUpForMouseMode();
+                }
+                else if (mode == "buttons")
+                {
+                    tempJoystick->mode = JoystickMode::BUTTONS;
+                    tempJoystick->setUpForButtonsMode();
+                    int vKeyCode;
+                    std::cout << "Up swing : ";
+                    std::cin >> std::hex >> vKeyCode;
+                    tempJoystick->buttonEmulatedKeyCode[0] = vKeyCode;
+                    std::cout << "Down swing : ";
+                    std::cin >> std::hex >> vKeyCode;
+                    tempJoystick->buttonEmulatedKeyCode[1] = vKeyCode;
+                    std::cout << "Left swing : ";
+                    std::cin >> std::hex >> vKeyCode;
+                    tempJoystick->buttonEmulatedKeyCode[2] = vKeyCode;
+                    std::cout << "Right swing : ";
+                    std::cin >> std::hex >> vKeyCode;
+                    tempJoystick->buttonEmulatedKeyCode[3] = vKeyCode;
+                }
             }
         }
     }
@@ -326,21 +494,37 @@ public:
                 {
                     char* pin = getPinFromMsg(mMsg, FactorType::BUTTON);
 
-                    auto pair = mMap.find("b" + std::string(pin));
-                    if (pair == mMap.end())
+                    auto existing = mMap.find("b" + std::string(pin));
+                    if (existing == mMap.end())
                     {
                         std::cerr << "Error! Undefined data occured on serial port. Unknown pin - not assigned to any factor.\n";
                     }
                     else
                     {
                         mMap["b" + std::string(pin)]->updateFactor((msgStr[3] == '0') ? false : true, nullptr);
-                        mMap["b" + std::string(pin)]->updateEmulatedStuff();
                     }
-                    delete[] pin;
+                    delete [] pin;
                 }
                 else if (msgStr[0] == 'j') // joystick msg arrived
                 {
+                    char* jNr = getPinFromMsg(mMsg, FactorType::JOYSTICK);
 
+                    auto existing = mMap.find("j" + std::string(jNr));
+                    if (existing == mMap.end())
+                    {
+                        std::cerr << "Error! Undefined data occured on serial port. Unknown pin - not assigned to any factor.\n";
+                    }
+                    else
+                    {
+                        JoyPosition pos;
+                        pos.x = static_cast<uint8_t>(msgStr[2]) - 48;
+                        pos.y = static_cast<uint8_t>(msgStr[3]) - 48;
+
+                        //std::cout << +pos.x << " " << +pos.y << "\n";
+                        mMap["j" + std::string(jNr)]->updateFactor(false, &pos);
+                        //mMap["b" + std::string(pin)]->updateEmulatedStuff();
+                    }
+                    delete[] jNr;
                 }
                 
             }
