@@ -7,11 +7,23 @@ with my library [Gamepad-Library](https://github.com/09pawel0898/arduino-gamepad
 The biggest disadvantage is a requirement to have it running in the background of the game..
 But in some cases can be very useful, especially when working with cheap arduino clones, or arudino types
 which are not acting as a HID device. Then using most common joystick libraries may be problematic for 
-some people.
+some people. 
+
+## How it does its job
+
+The application allows you to assign actions to components connected to your arduino.
+It requires the use of Gamepad-Library mentioned above. The library is responsible for sending messages
+that describe components states from arduino to PC, and the application is intended to handle those messages, and to perform
+appropriate actions. 
+
+Available behaviours and their equivalents :
+
+Button Pressed/Button Released <--> Key pressed/Key released
+Joystick swing <--> Can emulate either mouse(4 velocities, depending on the swing angle) or 4 buttons(Key X pressed/Key X released).
 
 ## Screenshoots
 
-![ScreenShot](screens/scr2.png)
+![ScreenShot](screenshots/scr2.png)
 
-![ScreenShot](screens/scr1.jpg)
+![ScreenShot](screensshots/scr1.jpg)
 
