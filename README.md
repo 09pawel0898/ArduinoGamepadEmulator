@@ -29,6 +29,9 @@ Or 4 buttons(Key X pressed/Key X released).
   
   [json](https://github.com/nlohmann/json "json")
   
+  [Benjijart](https://www.youtube.com/watch?v=EkzCk_oesJk "Benjijart") - This video inspired me to do this application, 
+  he presented a similar program but without any options for customization.
+  
 ## Screenshoots
 
 ![ScreenShot](screenshots/scr2.png)
