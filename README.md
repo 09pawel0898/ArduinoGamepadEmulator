@@ -19,11 +19,12 @@ appropriate actions.
 Available behaviours and their equivalents :
 
 Button Pressed/Button Released <--> Key pressed/Key released
+
 Joystick swing <--> Can emulate either mouse(4 velocities, depending on the swing angle) or 4 buttons(Key X pressed/Key X released).
 
 ## Screenshoots
 
 ![ScreenShot](screenshots/scr2.png)
 
-![ScreenShot](screensshots/scr1.jpg)
+![ScreenShot](screenshots/scr1.jpg)
 
