@@ -47,7 +47,7 @@ struct Button : public Factor
     bool state;
 
     Button(uint8_t _pin = 0, bool _state = false);
-    inline virtual void updateFactor(bool _state, void* joyPosition) override;
+    virtual void updateFactor(bool _state, void* joyPosition) override;
     virtual void updateEmulatedStuff(void) const override;
 };
 

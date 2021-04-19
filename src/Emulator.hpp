@@ -14,6 +14,7 @@ protected:
 
 class Emulator : public Gui
 {
+private:
     const unsigned mMsgSize;
     const char* mPortId;
     char* mMsg;
@@ -21,15 +22,16 @@ class Emulator : public Gui
     std::unordered_map<std::string, std::unique_ptr<Factor>> mMap;
     DataSerializer mDataSerializer;
 
-public:
-
-    explicit Emulator(const char* portId);
     char* getPinFromMsg(const char* msg, FactorType type) const;
     void saveNewFactors(void);
     void configureFactors(void);
     void setUpNewGamepad(void);
-    void run(void);
     void listenForArduinoEvents(void);
+
+public:
+
+    explicit Emulator(const char* portId);
+    void run(void);
 };
 
 #endif
