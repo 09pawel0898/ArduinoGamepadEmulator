@@ -18,6 +18,8 @@ appropriate actions. The way it does it is pretty simple. I used two functions p
 [SetCursorPos](https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setcursorpos "SetCursorPos") 
 [keybd_event](https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-keybd_event "keybd_event")
 The first to handle mouse movement, and the second to handle key pressing.
+See the [Gamepad-Library](https://github.com/09pawel0898/arduino-gamepad-lib "Gamepad-Library") to see how the messages looks like
+and how they are composed.
 
 ### Available behaviours and their equivalents :
 
