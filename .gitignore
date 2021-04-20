@@ -1,3 +1,8 @@
+#Binaries
+**/bin/
+!vendor/premake
+bin-int/
+
 .vs/
 **.sln
 **.vcxproj
