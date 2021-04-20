@@ -14,12 +14,12 @@ some people or even impossible.
 The application allows you to assign actions to components connected to your arduino.
 It requires the use of Gamepad-Library mentioned above. The library is responsible for sending messages
 that describe components states from arduino to PC, and the application is intended to handle those messages, and to perform
-appropriate actions. The way it does it is pretty simple. I used two functions provided in <windows.h> library.
-[SetCursorPos](https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setcursorpos "SetCursorPos")
+appropriate actions. The way it does it is pretty simple. I used two functions provided in <windows.h> library - 
+[SetCursorPos](https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setcursorpos "SetCursorPos") 
 [keybd_event](https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-keybd_event "keybd_event")
-The first to hanle mouse movement, and the second to handle key pressing.
+The first to handle mouse movement, and the second to handle key pressing.
 
-Available behaviours and their equivalents :
+### Available behaviours and their equivalents :
 
 Button Pressed/Button Released <--> Key pressed/Key released
 
@@ -28,10 +28,10 @@ Or 4 buttons(Key X pressed/Key X released).
 
 ## Building the project
 
-Start by cloning the repository with git clone https://github.com/09pawel0898/arudino-gamepad-emulator.git
+Start by cloning the repository with `git clone https://github.com/09pawel0898/arudino-gamepad-emulator.git`.
 Then run generate_project.bat for Visual Studio 2019 project generation, launch *.sln file and build solution.
 
-### Exe file is also provided in "executable" folder.
+Exe file is also provided in "executable" folder.
 
 ## References
 
