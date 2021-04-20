@@ -19,11 +19,24 @@ appropriate actions.
 Available behaviours and their equivalents :
 
 Button Pressed/Button Released <--> Key pressed/Key released
-Joystick swing <--> Can emulate either mouse(4 velocities, depending on the swing angle) or 4 buttons(Key X pressed/Key X released).
 
+Joystick swing <--> Can emulate either mouse(4 velocities, depending on the swing angle)                  
+Or 4 buttons(Key X pressed/Key X released).
+
+## References
+
+  [Serial-Port](https://github.com/manashmandal/SerialPort "Serial-Port")  - C++ Library for Serial Communication
+  
+  [json](https://github.com/nlohmann/json "json")
+  
+  [Benjijart](https://www.youtube.com/watch?v=EkzCk_oesJk "Benjijart") - This video inspired me to do this application, 
+  he presented a similar program but without any options for customization.
+  
 ## Screenshoots
 
 ![ScreenShot](screenshots/scr2.png)
 
-![ScreenShot](screensshots/scr1.jpg)
+![ScreenShot](screenshots/scr1.jpg)
 
+## To do
+* Saving and reading settings
